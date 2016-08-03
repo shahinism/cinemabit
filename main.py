@@ -1,4 +1,6 @@
 import os
+import requests
+from guessit import guessit
 
 
 SCANNABLE_MIN_SIZE = 25 * 1024 * 1024
@@ -15,18 +17,46 @@ def get_file_ext(file_name):
     return os.path.splitext(file_name)[1]
 
 
-MOVIES = []
 def walk_path(path):
+    result = []
     path = os.path.abspath(path)
     for root, dirs, files in os.walk(path):
         for file_name in files:
             path = os.path.join(root, file_name)
             if os.path.getsize(path) > SCANNABLE_MIN_SIZE:
                 if get_file_ext(file_name) in SCANNABLE_EXT:
-                    MOVIES.append({
+                    result.append({
                         'path': root,
                         'file': file_name,
                     })
+    return result
 
-walk_path("/run/media/shahin/Entertainment/Movie")
-print(MOVIES)
+
+def get_file_info(path):
+    return guessit(path)
+
+
+def omdb(title, year=None):
+    endpoint = 'http://www.omdbapi.com/'
+    params = {'t': title.encode('ascii', 'ignore'),
+              'plot': 'full',
+              'type': 'movie',
+              'tomatoes': 'true'}
+
+    if year:
+        params['y'] = year
+
+    response = requests.get(endpoint, params=params)
+    return response.json()
+
+
+def get_info(path):
+    videos = walk_path(path)
+    for video in videos:
+        file_info = get_file_info(video['file'])
+        omdb_info = omdb(file_info['title'], file_info.get('year'))
+        video.update(file_info)
+        video.update(omdb_info)
+
+
+get_info("/run/media/shahin/Entertainment/Movie")
