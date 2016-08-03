@@ -23,6 +23,10 @@ def walk_path(path):
             path = os.path.join(root, file_name)
             if os.path.getsize(path) > SCANNABLE_MIN_SIZE:
                 if get_file_ext(file_name) in SCANNABLE_EXT:
-                    MOVIES.append(file_name)
+                    MOVIES.append({
+                        'path': root,
+                        'file': file_name,
+                    })
 
 walk_path("/run/media/shahin/Entertainment/Movie")
+print(MOVIES)
