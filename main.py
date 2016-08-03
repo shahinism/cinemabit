@@ -17,6 +17,7 @@ def get_file_ext(file_name):
 
 MOVIES = []
 def walk_path(path):
+    path = os.path.abspath(path)
     for root, dirs, files in os.walk(path):
         for file_name in files:
             path = os.path.join(root, file_name)
@@ -25,4 +26,3 @@ def walk_path(path):
                     MOVIES.append(file_name)
 
 walk_path("/run/media/shahin/Entertainment/Movie")
-print(MOVIES)
