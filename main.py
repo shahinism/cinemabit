@@ -39,7 +39,9 @@ def walk_path(path):
 
 
 def get_file_info(path):
-    return guessit(path)
+    result = guessit(path)
+    encoder = jsonutils.GuessitEncoder()
+    return json.loads(encoder.encode(result))
 
 
 def omdb(title, year=None):
