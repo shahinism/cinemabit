@@ -1,8 +1,14 @@
 import os
+import json
+
 import requests
-from guessit import guessit
+
+from tqdm import tqdm
+from tinydb import TinyDB
+from guessit import guessit, jsonutils
 
 
+DB_PATH = os.path.expanduser('~/.cinemabits.json')
 SCANNABLE_MIN_SIZE = 25 * 1024 * 1024
 SCANNABLE_EXT = (".3g2 .3gp .3gp2 .3gpp .60d .ajp .asf .asx .avchd .avi .bik .bix"
                  ".box .cam .dat .divx .dmf .dv .dvr-ms .evo .flc .fli .flic .flv"
@@ -52,11 +58,19 @@ def omdb(title, year=None):
 
 def get_info(path):
     videos = walk_path(path)
-    for video in videos:
-        file_info = get_file_info(video['file'])
-        omdb_info = omdb(file_info['title'], file_info.get('year'))
-        video.update(file_info)
-        video.update(omdb_info)
+    with tqdm(total=len(videos)) as pbar:
+        for video in videos:
+            file_info = get_file_info(video['file'])
+            omdb_info = omdb(file_info['title'], file_info.get('year'))
+            video.update(file_info)
+            video.update(omdb_info)
+            db_insert(video)
+            pbar.update()
+
+
+def db_insert(data, path=DB_PATH):
+    db = TinyDB(path)
+    db.insert(data)
 
 
 get_info("/run/media/shahin/Entertainment/Movie")
