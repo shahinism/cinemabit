@@ -3,9 +3,12 @@ import json
 
 import config
 
+from shutil import copyfile
+
 from tqdm import tqdm
 from tinydb import TinyDB
 from guessit import guessit, jsonutils
+from slugify import slugify
 from omdb import omdb_search
 
 
@@ -13,8 +16,11 @@ def get_file_ext(file_name):
     return os.path.splitext(file_name)[1]
 
 
-def mk_dir(path):
-    os.mkddirs(path)
+def mkdir(path):
+    try:
+        os.makedirs(path)
+    except Exception as e:
+        print(e)
 
 
 def walk_path(path):
@@ -46,8 +52,9 @@ def get_info(path):
             omdb_info = omdb_search(file_info['title'], file_info.get('year'))
             video.update(file_info)
             video.update(omdb_info)
-            db_insert(video)
             pbar.update()
+
+    return videos
 
 
 def db_insert(data, path=config.DB_PATH):
@@ -55,4 +62,30 @@ def db_insert(data, path=config.DB_PATH):
     db.insert(data)
 
 
-get_info("/run/media/shahin/Entertainment/Movie")
+def find_video_path(video):
+    title = slugify(video['title'], to_lower=True, separator='_')
+    year = video['Year']
+    ext = video['container']
+
+    # TODO: Make me customizable!
+    dest_name = title + "_" + year + "." + ext
+    dest_path = os.path.join(config.LIBRARY, year, title)
+
+    curr_name = video['file']
+    curr_path = video['path']
+    mkdir(dest_path)
+    copyfile(os.path.join(curr_path, curr_name), os.path.join(dest_path, dest_name))
+
+    return
+
+def import_video(video):
+    db_insert(video)
+    path = find_video_path(video)
+
+
+def scan_videos(path):
+    videos = get_info(path)
+    for video in tqdm(videos):
+        import_video(video)
+
+scan_videos("/run/media/shahin/Entertainment/Movie/2009/A_perfect_getaway_2009")

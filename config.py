@@ -1,6 +1,7 @@
 import os
 
 
+LIBRARY = "/run/media/shahin/Entertainment/MovieLib"
 DB_PATH = os.path.expanduser('~/.cinemabits.json')
 SCANNABLE_MIN_SIZE = 25 * 1024 * 1024
 SCANNABLE_EXT = (
