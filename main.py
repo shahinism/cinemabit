@@ -13,6 +13,10 @@ def get_file_ext(file_name):
     return os.path.splitext(file_name)[1]
 
 
+def mk_dir(path):
+    os.mkddirs(path)
+
+
 def walk_path(path):
     result = []
     path = os.path.abspath(path)
