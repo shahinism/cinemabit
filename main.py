@@ -24,6 +24,21 @@ def mkdir(path):
         print(e)
 
 
+def walk_path(path):
+    result = []
+    path = os.path.abspath(path)
+    for root, dirs, files in os.walk(path):
+        for file_name in files:
+            path = os.path.join(root, file_name)
+            if os.path.getsize(path) > config.SCANNABLE_MIN_SIZE:
+                if get_file_ext(file_name) in config.SCANNABLE_EXT:
+                    result.append({
+                        'path': root,
+                        'file': file_name,
+                    })
+    return result
+
+
 def get_info(path):
     # Extract as much as possible from file name first
     video = dict(guessit(path))
@@ -37,7 +52,8 @@ def get_info(path):
 
 def desired_path(video):
     title = slugify(video['title'], to_lower=True, separator='_')
-    year = str(video['year'])
+    # TODO: Make it possible to edit
+    year = str(video.get('year', 'unknown'))
     ext = video['container']
 
     name = "{}.{}".format(title, year)
@@ -79,9 +95,9 @@ def record(data):
     table.insert(data)
 
 
-@click.command()
-@click.argument('movie', type=click.Path(), required=True)
-def main(movie):
+def import_video(movie, no_poster=False):
+    # TODO: Support multi disk
+    # TODO: Subtitle support (if exist locally)
     # TODO: Better prompts, this is awful
     data = get_info(movie)
     print("The following is the extracted data for your movie:")
@@ -93,11 +109,47 @@ def main(movie):
     print("\n\nThe file will move:")
     print("{} -> {}".format(os.path.abspath(movie), os.path.join(dest['path'], dest['name'])))
     if click.confirm("Is that ok?"):
-        mkdir(dest['path'])
-        copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
-        download_file(data['poster'], os.path.join(dest['path'], 'poster.jpg'))
         record(data)
 
+        mkdir(dest['path'])
+        copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
+
+        if not no_poster:
+            download_file(data['poster'], os.path.join(dest['path'], 'poster.jpg'))
+
+
+def import_tree(path, no_poster):
+    videos = walk_path(path)
+    for video in videos:
+        import_video(os.path.join(video['path'], video['file']))
+
+
+@click.command()
+@click.option(
+    '-v',
+    '--video',
+    help='single target video file to import',
+    type=click.Path()
+)
+@click.option(
+    '-d',
+    '--directory',
+    help='target directory of movies to import recursively',
+    type=click.Path()
+)
+@click.option(
+    '--no-poster',
+    help='do not get posters',
+    default=False
+)
+def main(video, directory, no_poster):
+    if video:
+        import_video(video, no_poster)
+    elif directory:
+        import_tree(directory, no_poster)
+    else:
+        print("Please give a video (-v) or a directory of movies (-d) to import.")
+        print("Look at --help for more information.")
 
 if __name__ == '__main__':
     main()
