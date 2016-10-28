@@ -84,6 +84,8 @@ def desired_path(video):
         name = "{}.{}".format(name, video['screen_size'])
     if video.get('format'):
         name = "{}.{}".format(name, video['format'])
+    if video.get('cd'):
+        name = "{}.cd_{}".format(name, video['cd'])
 
     # TODO: Make me customizable!
     return {
@@ -113,7 +115,6 @@ def record(data):
 
 
 def import_video(movie, no_poster=False):
-    # TODO: Support multi disk
     # TODO: Subtitle support (if exist locally)
     # TODO: Better prompts, this is awful
     data = get_info(movie)
