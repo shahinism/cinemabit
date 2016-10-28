@@ -3,9 +3,10 @@ import shutil
 import config
 import click
 import requests
+import dataset
+import time
 
 from tqdm import tqdm
-from tinydb import TinyDB
 from guessit import guessit
 from slugify import slugify
 from omdb import omdb_search
@@ -38,12 +39,16 @@ def desired_path(video):
     title = slugify(video['title'], to_lower=True, separator='_')
     year = str(video['year'])
     ext = video['container']
-    screen_size = video['screen_size']
-    video_format = video['format']
+
+    name = "{}.{}".format(title, year)
+    if video.get('screen_size'):
+        name = "{}.{}".format(name, video['screen_size'])
+    if video.get('format'):
+        name = "{}.{}".format(name, video['format'])
 
     # TODO: Make me customizable!
     return {
-        'name': "{}.{}.{}.{}.{}".format(title, year, video_format, screen_size, ext),
+        'name': "{}.{}".format(name, ext),
         'path': os.path.join(config.LIBRARY, year, title)
     }
 
@@ -63,6 +68,17 @@ def copy_file(src, dest):
         print('Error: %s' % e.strerror)
 
 
+def record(data):
+    data = {k: str(v) for k, v in data.items()}
+    db = dataset.connect('sqlite:///{}'.format(config.DB_PATH))
+    table = db.get_table('movies')
+
+    # Bugfix, it's not working!
+    if table.find_one(imdbid=data.get('imdbid')):
+        table.update(data, ['imdbid'])
+    table.insert(data)
+
+
 @click.command()
 @click.argument('movie', type=click.Path(), required=True)
 def main(movie):
@@ -73,12 +89,14 @@ def main(movie):
         if key in ['title', 'released', 'genre']:
             print("{}: {}".format(key.capitalize(), value))
     dest = desired_path(data)
+    data['path'] = os.path.join(dest['path'])
     print("\n\nThe file will move:")
     print("{} -> {}".format(os.path.abspath(movie), os.path.join(dest['path'], dest['name'])))
     if click.confirm("Is that ok?"):
         mkdir(dest['path'])
         copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
         download_file(data['poster'], os.path.join(dest['path'], 'poster.jpg'))
+        record(data)
 
 
 if __name__ == '__main__':
