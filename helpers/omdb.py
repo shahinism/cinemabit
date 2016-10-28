@@ -1,7 +1,8 @@
 import requests
 
 
-def omdb_search(title, year=None):
+def search(title, year=None):
+    # TODO: support series
     endpoint = 'http://www.omdbapi.com/'
     params = {'t': title.encode('ascii', 'ignore'),
               'plot': 'full',

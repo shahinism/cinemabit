@@ -1,65 +1,13 @@
 import os
-import shutil
 import config
 import click
 import requests
 import dataset
 import validators
 
-from tqdm import tqdm
 from guessit import guessit
 from slugify import slugify
-from omdb import omdb_search
-
-
-def copyfileobj(fsrc, fdst, source_size, length=16*1024):
-    with tqdm(total=source_size, unit='B', unit_scale=True) as pbar:
-        while True:
-            buf = fsrc.read(length)
-            if not buf:
-                break
-            fdst.write(buf)
-            pbar.update(len(buf))
-
-
-def copy_file(src, dst):
-    if shutil._samefile(src, dst):
-        raise shutil.SameFileError("{!r} and {!r} are the same file".format(src, dst))
-
-    else:
-        source_size = os.stat(src).st_size
-        with open(src, 'rb') as fsrc:
-            with open(dst, 'wb') as fdst:
-                copyfileobj(fsrc, fdst, source_size)
-
-    return dst
-
-
-def get_file_ext(file_name):
-    return os.path.splitext(file_name)[1]
-
-
-def mkdir(path):
-    try:
-        if not os.path.exists(path):
-            os.makedirs(path)
-    except Exception as e:
-        print(e)
-
-
-def walk_path(path):
-    result = []
-    path = os.path.abspath(path)
-    for root, dirs, files in os.walk(path):
-        for file_name in files:
-            path = os.path.join(root, file_name)
-            if os.path.getsize(path) > config.SCANNABLE_MIN_SIZE:
-                if get_file_ext(file_name) in config.SCANNABLE_EXT:
-                    result.append({
-                        'path': root,
-                        'file': file_name,
-                    })
-    return result
+from helpers import omdb, files, paths
 
 
 def get_info(path):
@@ -67,7 +15,7 @@ def get_info(path):
     video = dict(guessit(path))
 
     # Now try to get IMDB data
-    omdb_info = omdb_search(video['title'], video.get('year'))
+    omdb_info = omdb.search(video['title'], video.get('year'))
     video.update(omdb_info)
 
     return video
@@ -129,15 +77,15 @@ def import_video(movie, no_poster=False):
     if click.confirm("Is that ok?"):
         record(data)
 
-        mkdir(dest['path'])
-        copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
+        paths.mkdir(dest['path'])
+        files.copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
 
         if not no_poster:
             download_file(data['poster'], os.path.join(dest['path'], 'poster.jpg'))
 
 
 def import_tree(path, no_poster):
-    videos = walk_path(path)
+    videos = paths.walk_path(path)
     for video in videos:
         import_video(os.path.join(video['path'], video['file']))
 
