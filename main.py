@@ -1,13 +1,12 @@
 import os
-import json
-
+import shutil
 import config
-
-from shutil import copyfile
+import click
+import requests
 
 from tqdm import tqdm
 from tinydb import TinyDB
-from guessit import guessit, jsonutils
+from guessit import guessit
 from slugify import slugify
 from omdb import omdb_search
 
@@ -18,74 +17,69 @@ def get_file_ext(file_name):
 
 def mkdir(path):
     try:
-        os.makedirs(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
     except Exception as e:
         print(e)
 
 
-def walk_path(path):
-    result = []
-    path = os.path.abspath(path)
-    for root, dirs, files in os.walk(path):
-        for file_name in files:
-            path = os.path.join(root, file_name)
-            if os.path.getsize(path) > config.SCANNABLE_MIN_SIZE:
-                if get_file_ext(file_name) in config.SCANNABLE_EXT:
-                    result.append({
-                        'path': root,
-                        'file': file_name,
-                    })
-    return result
-
-
-def get_file_info(path):
-    result = guessit(path)
-    encoder = jsonutils.GuessitEncoder()
-    return json.loads(encoder.encode(result))
-
-
 def get_info(path):
-    videos = walk_path(path)
-    with tqdm(total=len(videos)) as pbar:
-        for video in videos:
-            file_info = get_file_info(video['file'])
-            omdb_info = omdb_search(file_info['title'], file_info.get('year'))
-            video.update(file_info)
-            video.update(omdb_info)
-            pbar.update()
+    # Extract as much as possible from file name first
+    video = dict(guessit(path))
 
-    return videos
+    # Now try to get IMDB data
+    omdb_info = omdb_search(video['title'], video.get('year'))
+    video.update(omdb_info)
+
+    return video
 
 
-def db_insert(data, path=config.DB_PATH):
-    db = TinyDB(path)
-    db.insert(data)
-
-
-def find_video_path(video):
+def desired_path(video):
     title = slugify(video['title'], to_lower=True, separator='_')
-    year = video['Year']
+    year = str(video['year'])
     ext = video['container']
+    screen_size = video['screen_size']
+    video_format = video['format']
 
     # TODO: Make me customizable!
-    dest_name = title + "_" + year + "." + ext
-    dest_path = os.path.join(config.LIBRARY, year, title)
-
-    curr_name = video['file']
-    curr_path = video['path']
-    mkdir(dest_path)
-    copyfile(os.path.join(curr_path, curr_name), os.path.join(dest_path, dest_name))
-
-    return
-
-def import_video(video):
-    db_insert(video)
-    path = find_video_path(video)
+    return {
+        'name': "{}.{}.{}.{}.{}".format(title, year, video_format, screen_size, ext),
+        'path': os.path.join(config.LIBRARY, year, title)
+    }
 
 
-def scan_videos(path):
-    videos = get_info(path)
-    for video in tqdm(videos):
-        import_video(video)
+def download_file(url, dest):
+    response = requests.get(url)
+    with open(dest, 'wb') as dest:
+        dest.write(response.content)
 
-scan_videos("/run/media/shahin/Entertainment/Movie/2009/A_perfect_getaway_2009")
+
+def copy_file(src, dest):
+    try:
+        shutil.copy(src, dest)
+    except shutil.Error as e:
+        print('Error: %s' % e)
+    except IOError as e:
+        print('Error: %s' % e.strerror)
+
+
+@click.command()
+@click.argument('movie', type=click.Path(), required=True)
+def main(movie):
+    # TODO: Better prompts, this is awful
+    data = get_info(movie)
+    print("The following is the extracted data for your movie:")
+    for key, value in data.items():
+        if key in ['title', 'released', 'genre']:
+            print("{}: {}".format(key.capitalize(), value))
+    dest = desired_path(data)
+    print("\n\nThe file will move:")
+    print("{} -> {}".format(os.path.abspath(movie), os.path.join(dest['path'], dest['name'])))
+    if click.confirm("Is that ok?"):
+        mkdir(dest['path'])
+        copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
+        download_file(data['poster'], os.path.join(dest['path'], 'poster.jpg'))
+
+
+if __name__ == '__main__':
+    main()

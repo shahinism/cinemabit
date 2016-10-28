@@ -1,5 +1,6 @@
 import requests
 
+
 def omdb_search(title, year=None):
     endpoint = 'http://www.omdbapi.com/'
     params = {'t': title.encode('ascii', 'ignore'),
@@ -11,4 +12,5 @@ def omdb_search(title, year=None):
         params['y'] = year
 
     response = requests.get(endpoint, params=params)
-    return response.json()
+    # Lower case all keys to prevent duplicate data
+    return {key.lower(): value for key, value in response.json().items()}
