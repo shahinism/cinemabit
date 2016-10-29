@@ -1,3 +1,4 @@
+import re
 import os
 import config
 import click
@@ -10,13 +11,37 @@ from slugify import slugify
 from helpers import omdb, files, paths
 
 
+def extract_imdbid(string):
+    match = re.search('(tt\d+)', string)
+    return match.groups()[0] if match else None
+
+
+def get_info_by_id():
+    userinput = click.prompt('Insert IMDB ID or URL', type=str)
+    imdbid = extract_imdbid(userinput)
+    if imdbid:
+        return omdb.find(imdbid)
+    else:
+        return get_info_by_id()
+
+
 def get_info(path):
     # Extract as much as possible from file name first
     video = dict(guessit(path))
 
     # Now try to get IMDB data
+    # TODO support series
     omdb_info = omdb.search(video['title'], video.get('year'))
-    video.update(omdb_info)
+
+    if omdb_info.get('response') == 'False':
+        error = omdb_info.get('error', 'Unknown')
+        print("Couldn't find IMDB data. error: {}".format(error))
+
+        if click.confirm("Can you provide an IMDB ID or URL for this title?"):
+            omdb_info = get_info_by_id()
+
+    if omdb_info.get('response') == 'True':
+        video.update(omdb_info)
 
     return video
 
