@@ -7,14 +7,19 @@ def lower_dict_keys(dictionary):
     return {key.lower(): value for key, value in dictionary.items()}
 
 
-def search(title, year=None, type_='movie'):
+def search(title, year=None, type_=None, season=None, episode=None):
     params = {'t': title.encode('ascii', 'ignore'),
               'plot': 'full',
-              'type': type_,
               'tomatoes': 'true'}
 
+    if type_:
+        params['type'] = type_
     if year:
         params['y'] = year
+    if season:
+        params['season'] = season
+    if episode:
+        params['episode'] = episode
 
     response = requests.get(ENDPOINT, params=params)
     # Lower case all keys to prevent duplicate data
