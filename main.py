@@ -30,8 +30,13 @@ def get_info(path):
     video = dict(guessit(path))
 
     # Now try to get IMDB data
-    # TODO support series
-    omdb_info = omdb.search(video['title'], video.get('year'))
+    if video['type'] == 'episode':
+        video['series'] = video['title']
+        omdb_info = omdb.search(video['title'], video.get('year'),
+                                season=video['season'], episode=video['episode'])
+    else:
+        omdb_info = omdb.search(video['title'], video.get('year'),
+                                type_='movie')
 
     if omdb_info.get('response') == 'False':
         error = omdb_info.get('error', 'Unknown')
@@ -46,26 +51,44 @@ def get_info(path):
     return video
 
 
+def slugify_it(string):
+    return slugify(string, to_lower=True, separator='_')
+
+
 def desired_path(video):
-    title = slugify(video['title'], to_lower=True, separator='_')
-    # TODO: Make it possible to edit
-    year = str(video.get('year', 'unknown'))
     ext = video['container']
 
-    name = "{}.{}".format(title, year)
-    if video.get('screen_size'):
-        name = "{}.{}".format(name, video['screen_size'])
-    if video.get('format'):
-        name = "{}.{}".format(name, video['format'])
-    if video.get('cd'):
-        name = "{}.cd_{}".format(name, video['cd'])
+    if video['type'] == 'episode':
+        title = slugify_it(video['series'])
+        ep_title = slugify_it(video['title'])
+        name = "{}.s{:0>2}e{:0>2}.{}.{}".format(title,
+                                                video['season'],
+                                                video['episode'],
+                                                ep_title, ext)
 
-    # TODO: Make me customizable!
+        path = os.path.join(config.LIBRARY, 'Series', title)
+
+    else:
+        title = slugify_it(video['title'])
+        # TODO: Make it possible to edit
+        year = str(video.get('year', 'unknown'))
+
+        name = "{}.{}".format(title, year)
+        if video.get('screen_size'):
+            name = "{}.{}".format(name, video['screen_size'])
+        if video.get('format'):
+            name = "{}.{}".format(name, video['format'])
+        if video.get('cd'):
+            name = "{}.cd_{}".format(name, video['cd'])
+
+        name += '.{}'.format(ext)
+        # TODO: Make me customizable!
+        path = os.path.join(config.LIBRARY, 'Movies', year, title)
+
     return {
-        'name': "{}.{}".format(name, ext),
-        'path': os.path.join(config.LIBRARY, year, title)
+        'name': name,
+        'path': path
     }
-
 
 def download_file(url, dest):
     if not validators.url(url):
@@ -106,6 +129,7 @@ def import_video(movie, no_poster=False):
         files.copy_file(os.path.abspath(movie), os.path.join(dest['path'], dest['name']))
 
         if not no_poster:
+            # TODO: Solve series poster overwrite!
             download_file(data['poster'], os.path.join(dest['path'], 'poster.jpg'))
 
 
