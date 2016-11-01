@@ -8,6 +8,7 @@ import validators
 
 from guessit import guessit
 from slugify import slugify
+from colorama import Fore
 from helpers import omdb, files, paths
 from video import Movie, Series
 
@@ -82,10 +83,10 @@ def record(data):
 def import_video(movie, no_poster=False):
     # TODO: Subtitle support (if exist locally)
     data = get_info(movie)
-    print("The following has been extracted data:\n")
+    print(Fore.BLUE + "The following has been extracted data:\n")
     for key, value in data.items():
         if key in ['title', 'released', 'genre']:
-            print("{:>10}: {}".format(key.capitalize(), value))
+            print("{}{:>10}: {}{}".format(Fore.GREEN, key.capitalize(), Fore.RESET, value))
     if data['type'] == 'episode':
         video = Series(data)
     else:
@@ -94,9 +95,10 @@ def import_video(movie, no_poster=False):
     dest = os.path.join(config.LIBRARY, video.get_desired_path())
     dest_dir = os.path.dirname(dest)
     data['path'] = dest
-    print("\nThis video will archive as:")
-    print("From:\n    {}\nTo:\n    {}".format(movie, dest))
-    if click.confirm("Is that ok?"):
+    print("{0}\nThis video will archive as:".format(Fore.YELLOW))
+    print("{0}From:\n    {1}".format(Fore.RED, dest))
+    print("{0}To:\n    {1}{2}\n".format(Fore.GREEN, dest, Fore.RESET))
+    if click.confirm("Is this ok?"):
         record(data)
         paths.mkdir(dest_dir)
         files.copy_file(movie, dest)
