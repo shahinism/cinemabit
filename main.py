@@ -7,7 +7,6 @@ import dataset
 import validators
 
 from guessit import guessit
-from slugify import slugify
 from colorama import Fore
 from helpers import omdb, files, paths
 from video import Movie, Series
@@ -54,10 +53,6 @@ def get_info(path):
         video.update(omdb_info)
 
     return video
-
-
-def slugify_it(string):
-    return slugify(string, to_lower=True, separator='_')
 
 
 def download_file(url, dest):
