@@ -5,9 +5,11 @@ import requests
 import dataset
 import validators
 
-from colorama import Fore
+from colorama import init, Fore
 from helpers import files, paths
 from video import Movie, Series, VideoInfo
+
+init(autoreset=True)
 
 
 def download_file(url, dest):
@@ -35,7 +37,7 @@ def import_video(path, no_poster=False):
     vinfo = VideoInfo(path)
     data = vinfo.get_info()
     if not data:
-        print(Fore.BLUE + "This video will not be imported!" + Fore.RESET)
+        print(Fore.BLUE + "This video will not be imported!")
         return
 
     print(Fore.BLUE + "The following has been extracted data:\n")
@@ -53,8 +55,8 @@ def import_video(path, no_poster=False):
     data['path'] = dest
     print("{0}\nThis video will archive as:".format(Fore.YELLOW))
     print("{0}From:\n    {1}".format(Fore.RED, path))
-    print("{0}To:\n    {1}{2}\n".format(Fore.GREEN, dest, Fore.RESET))
-    if click.confirm("Is this ok?"):
+    print("{0}To:\n    {1}\n".format(Fore.GREEN, dest))
+    if click.confirm("Is this OK?"):
         record(data)
         paths.mkdir(dest_dir)
         files.copy_file(path, dest)
