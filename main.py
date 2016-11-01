@@ -81,12 +81,11 @@ def record(data):
 
 def import_video(movie, no_poster=False):
     # TODO: Subtitle support (if exist locally)
-    # TODO: Better prompts, this is awful
     data = get_info(movie)
-    print("The following is the extracted data for your movie:")
+    print("The following has been extracted data:\n")
     for key, value in data.items():
         if key in ['title', 'released', 'genre']:
-            print("{}: {}".format(key.capitalize(), value))
+            print("{:>10}: {}".format(key.capitalize(), value))
     if data['type'] == 'episode':
         video = Series(data)
     else:
@@ -95,7 +94,7 @@ def import_video(movie, no_poster=False):
     dest = os.path.join(config.LIBRARY, video.get_desired_path())
     dest_dir = os.path.dirname(dest)
     data['path'] = dest
-    print("\n\nThe file will move:")
+    print("\nThis video will archive as:")
     print("From:\n    {}\nTo:\n    {}".format(movie, dest))
     if click.confirm("Is that ok?"):
         record(data)
