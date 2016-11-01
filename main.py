@@ -95,7 +95,7 @@ def import_video(movie, no_poster=False):
     dest = os.path.join(config.LIBRARY, video.get_desired_path())
     data['path'] = dest
     print("\n\nThe file will move:")
-    print("From:\n    {}\nto\n    {}".format(os.path.abspath(movie), dest))
+    print("From:\n    {}\nTo\n    {}".format(os.path.abspath(movie), dest))
     if click.confirm("Is that ok?"):
         record(data)
 
@@ -115,27 +115,16 @@ def import_tree(path, no_poster):
 
 
 @click.command()
-# TODO: find input type automatically
-@click.option(
-    '-v',
-    '--video',
-    help='single target video file to import',
-    type=click.Path())
-@click.option(
-    '-d',
-    '--directory',
-    help='target directory of movies to import recursively',
-    type=click.Path())
+@click.argument(
+    'target',
+    type=click.Path(),
+    required=True)
 @click.option('--no-poster', help='do not get posters', default=False)
-def main(video, directory, no_poster):
-    if video:
-        import_video(video, no_poster)
-    elif directory:
-        import_tree(directory, no_poster)
+def main(target, no_poster):
+    if os.path.isfile(os.path.abspath(target)):
+        import_video(target, no_poster)
     else:
-        print(
-            "Please give a video (-v) or a directory of movies (-d) to import.")
-        print("Look at --help for more information.")
+        import_tree(target, no_poster)
 
 
 if __name__ == '__main__':
