@@ -95,12 +95,12 @@ def import_video(movie, no_poster=False):
     dest = os.path.join(config.LIBRARY, video.get_desired_path())
     data['path'] = dest
     print("\n\nThe file will move:")
-    print("From:\n    {}\nTo\n    {}".format(os.path.abspath(movie), dest))
+    print("From:\n    {}\nTo:\n    {}".format(movie, dest))
     if click.confirm("Is that ok?"):
         record(data)
 
         paths.mkdir(dest['path'])
-        files.copy_file(os.path.abspath(movie), dest)
+        files.copy_file(movie, dest)
 
         if not no_poster:
             poster_name = '{}.jpg'.format(video.get_poster_name())
@@ -121,7 +121,8 @@ def import_tree(path, no_poster):
     required=True)
 @click.option('--no-poster', help='do not get posters', default=False)
 def main(target, no_poster):
-    if os.path.isfile(os.path.abspath(target)):
+    target = os.path.abspath(target)
+    if os.path.isfile(target):
         import_video(target, no_poster)
     else:
         import_tree(target, no_poster)
