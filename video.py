@@ -1,5 +1,11 @@
+import re
 import os
+import click
+
+from colorama import Fore
+from guessit import guessit
 from slugify import slugify
+from helpers import omdb
 
 
 class Video:
@@ -57,3 +63,58 @@ class Series(Video):
         return "{}.s{:0>2}e{:0>2}.{}".format(self.title, self.data['season'],
                                              self.data['episode'],
                                              self.ep_title)
+
+
+class VideoInfo:
+    def __init__(self, path):
+        self.path = path
+        self.data = self.guess()
+        self.updated = False
+
+    def guess(self):
+        return dict(guessit(self.path))
+
+    @staticmethod
+    def get_imdbid():
+        userinput = click.prompt('Insert IMDB ID or URL', type=str)
+        match = re.search('(tt\d+)', userinput)
+        return match.groups()[0] if match else None
+
+    def update_info(self):
+        self.updated = True
+        if self.data['type'] == 'episode':
+            self.data['series'] = self.data['title']
+            omdb_info = omdb.search(
+                self.data['title'],
+                self.data.get('year'),
+                season=self.data['season'],
+                episode=self.data['episode'])
+        else:
+            omdb_info = omdb.search(
+                self.data['title'], self.data.get('year'), type_='movie')
+
+        self.data.update(omdb_info)
+
+    def update_info_by_id(self):
+        imdbid = self.get_imdbid()
+        if not imdbid:
+            return self.update_by_id()
+
+        omdb_info = omdb.find(imdbid)
+        self.data.update(omdb_info)
+
+    def get_info(self):
+        if not self.updated:
+            self.update_info()
+
+        if self.data.get('response') == 'True':
+            return self.data
+
+        error = self.data.get('error', 'Unknown')
+        msg = "{0}Couldn't find IMDB data. error: {1}{2}"
+        print(msg.format(Fore.RED, error, Fore.RESET))
+        if click.confirm("Can you provide an IMDB ID or URL for this title?"):
+            self.update_info_by_id()
+            return self.get_info()
+
+        return None

@@ -1,4 +1,3 @@
-import re
 import os
 import config
 import click
@@ -6,53 +5,9 @@ import requests
 import dataset
 import validators
 
-from guessit import guessit
 from colorama import Fore
-from helpers import omdb, files, paths
-from video import Movie, Series
-
-
-def extract_imdbid(string):
-    match = re.search('(tt\d+)', string)
-    return match.groups()[0] if match else None
-
-
-def get_info_by_id():
-    userinput = click.prompt('Insert IMDB ID or URL', type=str)
-    imdbid = extract_imdbid(userinput)
-    if imdbid:
-        return omdb.find(imdbid)
-    else:
-        return get_info_by_id()
-
-
-def get_info(path):
-    # Extract as much as possible from file name first
-    video = dict(guessit(path))
-
-    # Now try to get IMDB data
-    if video['type'] == 'episode':
-        video['series'] = video['title']
-        omdb_info = omdb.search(
-            video['title'],
-            video.get('year'),
-            season=video['season'],
-            episode=video['episode'])
-    else:
-        omdb_info = omdb.search(
-            video['title'], video.get('year'), type_='movie')
-
-    if omdb_info.get('response') == 'False':
-        error = omdb_info.get('error', 'Unknown')
-        print("Couldn't find IMDB data. error: {}".format(error))
-
-        if click.confirm("Can you provide an IMDB ID or URL for this title?"):
-            omdb_info = get_info_by_id()
-
-    if omdb_info.get('response') == 'True':
-        video.update(omdb_info)
-
-    return video
+from helpers import files, paths
+from video import Movie, Series, VideoInfo
 
 
 def download_file(url, dest):
@@ -75,13 +30,19 @@ def record(data):
     table.insert(data)
 
 
-def import_video(movie, no_poster=False):
+def import_video(path, no_poster=False):
     # TODO: Subtitle support (if exist locally)
-    data = get_info(movie)
+    vinfo = VideoInfo(path)
+    data = vinfo.get_info()
+    if not data:
+        print(Fore.BLUE + "This video will not be imported!" + Fore.RESET)
+        return
+
     print(Fore.BLUE + "The following has been extracted data:\n")
     for key, value in data.items():
         if key in ['title', 'released', 'genre']:
-            print("{}{:>10}: {}{}".format(Fore.GREEN, key.capitalize(), Fore.RESET, value))
+            print("{}{:>10}: {}{}".format(Fore.GREEN,
+                                          key.capitalize(), Fore.RESET, value))
     if data['type'] == 'episode':
         video = Series(data)
     else:
@@ -91,12 +52,12 @@ def import_video(movie, no_poster=False):
     dest_dir = os.path.dirname(dest)
     data['path'] = dest
     print("{0}\nThis video will archive as:".format(Fore.YELLOW))
-    print("{0}From:\n    {1}".format(Fore.RED, dest))
+    print("{0}From:\n    {1}".format(Fore.RED, path))
     print("{0}To:\n    {1}{2}\n".format(Fore.GREEN, dest, Fore.RESET))
     if click.confirm("Is this ok?"):
         record(data)
         paths.mkdir(dest_dir)
-        files.copy_file(movie, dest)
+        files.copy_file(path, dest)
 
         if not no_poster:
             poster_name = '{}.jpg'.format(video.get_poster_name())
