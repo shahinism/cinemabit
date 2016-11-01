@@ -8,7 +8,7 @@ from slugify import slugify
 from helpers import omdb
 
 
-class Video:
+class _Video:
     def __init__(self, data):
         self.data = data
         self.video_type = data['type']
@@ -34,7 +34,7 @@ class Video:
             return 'poster'
 
 
-class Movie(Video):
+class Movie(_Video):
     def __init__(self, data):
         super().__init__(data)
         self.title = self.slugify(self.data['title'])
@@ -52,7 +52,7 @@ class Movie(Video):
         return name
 
 
-class Series(Video):
+class Series(_Video):
     def __init__(self, data):
         super().__init__(data)
         self.title = self.slugify(self.data['series'])
@@ -65,7 +65,7 @@ class Series(Video):
                                              self.ep_title)
 
 
-class VideoInfo:
+class Info:
     def __init__(self, path):
         self.path = path
         self.data = self.guess()
@@ -103,7 +103,7 @@ class VideoInfo:
         omdb_info = omdb.find(imdbid)
         self.data.update(omdb_info)
 
-    def get_info(self):
+    def get(self):
         if not self.updated:
             self.update_info()
 

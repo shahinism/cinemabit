@@ -7,7 +7,7 @@ import validators
 
 from colorama import init, Fore
 from helpers import files, paths
-from video import Movie, Series, VideoInfo
+from video import Movie, Series, Info
 
 init(autoreset=True)
 
@@ -34,8 +34,8 @@ def record(data):
 
 def import_video(path, no_poster=False):
     # TODO: Subtitle support (if exist locally)
-    vinfo = VideoInfo(path)
-    data = vinfo.get_info()
+    vinfo = Info(path)
+    data = vinfo.get()
     if not data:
         print(Fore.BLUE + "This video will not be imported!")
         return
