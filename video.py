@@ -2,6 +2,7 @@ import re
 import os
 import click
 
+from clint.textui import colored, puts
 from guessit import guessit
 from slugify import slugify
 from helpers import omdb
@@ -110,7 +111,7 @@ class Info:
             return self.data
 
         error = self.data.get('error', 'Unknown')
-        print("Couldn't find IMDB data. error: {0}".format(error))
+        puts(colored.yellow("Couldn't find IMDB data. error: ") + colored.red(error))
         if click.confirm("Can you provide an IMDB ID or URL for this title?"):
             self.update_info_by_id()
             return self.get_info()
