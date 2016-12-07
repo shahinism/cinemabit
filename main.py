@@ -101,7 +101,7 @@ def import_video(path, video, poster):
     archiver.save()
 
 def import_tree(path, poster):
-    videos = paths.walk_path(path)
+    videos = paths.walk_path(path, config.VIDEO_EXT, config.VIDEO_MIN_SIZE)
     for video in videos:
         import_video(video['path'], video['file'], poster)
 
