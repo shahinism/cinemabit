@@ -24,7 +24,7 @@ def record(data):
     db = dataset.connect('sqlite:///{}'.format(config.DB_PATH))
     table = db.get_table('movies')
 
-    # Bugfix, it's not working!
+    # TODO: Bugfix, it's not working!
     if table.find_one(imdbid=data.get('imdbid')):
         table.update(data, ['imdbid'])
     table.insert(data)
@@ -63,11 +63,17 @@ class Archiver(object):
         self.set_dest()
 
     def get_poster(self):
-        # TODO: Support local posters
-        poster_path = os.path.join(self.new_path, self.video.get_poster_name())
-        download_file(self.data['poster'], poster_path)
+        poster_name = self.video.get_poster_name()
+        old_poster_path = os.path.join(self.old_path_dir, poster_name)
+        new_poster_path = os.path.join(self.new_path, poster_name)
 
-    def save_video(self):
+        if os.path.exists(old_poster_path) and \
+           click.confirm("Use old poster from {}".format(old_poster_path)):
+            files.copy_file(old_poster_path, new_poster_path)
+        else:
+            download_file(self.data['poster'], new_poster_path)
+
+    def save(self):
         # TODO: Subtitle support (if exist locally)
         if not self.data:
             puts(colored.red('This video will not be imported!'))
@@ -90,10 +96,14 @@ class Archiver(object):
             if self.poster:
                 self.get_poster()
 
+def import_video(path, video, poster):
+    archiver = Archiver(path, video, poster)
+    archiver.save()
+
 def import_tree(path, poster):
     videos = paths.walk_path(path)
     for video in videos:
-        Archiver(video['path'], video['file'], poster).save_video()
+        import_video(video['path'], video['file'], poster)
 
 
 @click.command()
@@ -102,7 +112,9 @@ def import_tree(path, poster):
 def main(target, no_poster):
     target = os.path.abspath(target)
     if os.path.isfile(target):
-        import_video(target, not no_poster)
+        import_video(os.path.dirname(target),
+                     os.path.basename(target),
+                     not no_poster)
     else:
         import_tree(target, not no_poster)
 
