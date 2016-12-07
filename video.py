@@ -18,21 +18,24 @@ class _Video:
     def slugify(string):
         return slugify(string, to_lower=True, separator='_')
 
-    def get_desired_path(self):
-        file_name = '{}.{}'.format(self.get_file_name(), self.ext)
+    def get_new_path(self):
         if self.video_type == 'episode':
-            path = os.path.join('Series', self.title, file_name)
+            path = os.path.join('Series', self.title)
         else:
-            path = os.path.join('Movies', self.year, self.title, file_name)
+            path = os.path.join('Movies', self.year, self.title)
 
         return path
 
+    def get_video_name(self):
+        return '{}.{}'.format(self.get_file_name(), self.ext)
+
     def get_poster_name(self):
         if self.video_type == 'episode':
-            return self.get_file_name()
+            name = self.get_file_name()
         else:
-            return 'poster'
+            name = 'poster'
 
+        return '{}.jpg'.format(name)
 
 class Movie(_Video):
     def __init__(self, data):
