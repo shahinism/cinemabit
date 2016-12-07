@@ -1,6 +1,7 @@
 import os
 import shutil
 from tqdm import tqdm
+from helpers import paths
 
 
 def copyfileobj(fsrc, fdst, source_size, length=16*1024):
@@ -13,12 +14,14 @@ def copyfileobj(fsrc, fdst, source_size, length=16*1024):
             pbar.update(len(buf))
 
 
-def copy_file(src, dst):
+def copy_file(src, dst, mk_dst=True):
+    # mk_dst: make directory if doesn't exists
     if shutil._samefile(src, dst):
         msg = "{!r} and {!r} are the same file".format(src, dst)
         raise shutil.SameFileError(msg)
-
     else:
+        if mk_dst:
+            paths.mkdir(os.path.dirname(dst))
         source_size = os.stat(src).st_size
         with open(src, 'rb') as fsrc:
             with open(dst, 'wb') as fdst:
