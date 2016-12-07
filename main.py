@@ -5,6 +5,7 @@ import requests
 import dataset
 import validators
 
+from clint.textui import colored, puts
 from helpers import files, paths
 from video import Movie, Series, Info
 
@@ -34,13 +35,14 @@ def import_video(path, no_poster=False):
     vinfo = Info(path)
     data = vinfo.get()
     if not data:
-        print("This video will not be imported!")
+        puts(colored.red('This video will not be imported!'))
         return
 
-    print("The following has been extracted data:\n")
+    puts(colored.white('The following data has been extracted:', bold=True))
     for key, value in data.items():
         if key in ['title', 'released', 'genre']:
-            print("{:>10}: {}".format(key.capitalize(), value))
+            title = "{:>10}: ".format(key.capitalize())
+            puts(colored.green(title) + colored.yellow(value))
     if data['type'] == 'episode':
         video = Series(data)
     else:
@@ -49,10 +51,11 @@ def import_video(path, no_poster=False):
     dest = os.path.join(config.LIBRARY, video.get_desired_path())
     dest_dir = os.path.dirname(dest)
     data['path'] = dest
-    print("\nThis video will archive as:")
-    print("From:\n    {0}".format(path))
-    print("To:\n    {0}\n".format(dest))
-    if click.confirm("Is this OK?"):
+
+    puts(colored.white("\nThe video will archive as:", bold=True))
+    puts(colored.green("{:>10}: ".format("From")) + colored.yellow(path))
+    puts(colored.green("{:>10}: ").format("To") + colored.yellow(dest))
+    if click.confirm("\nIs this OK?"):
         record(data)
         paths.mkdir(dest_dir)
         files.copy_file(path, dest)

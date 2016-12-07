@@ -1,3 +1,4 @@
 
-* TODO Use [[https://github.com/kennethreitz/clint][Clint]] for UI
-
+* DONE Use [[https://github.com/kennethreitz/clint][Clint]] for UI
+  CLOSED: [2016-12-07 Wed 12:54]
+* TODO Get rid of video.Info.get()
