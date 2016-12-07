@@ -2,7 +2,6 @@ import re
 import os
 import click
 
-from colorama import Fore
 from guessit import guessit
 from slugify import slugify
 from helpers import omdb
@@ -111,8 +110,7 @@ class Info:
             return self.data
 
         error = self.data.get('error', 'Unknown')
-        msg = "{0}Couldn't find IMDB data. error: {1}{2}"
-        print(msg.format(Fore.RED, error, Fore.RESET))
+        print("Couldn't find IMDB data. error: {0}".format(error))
         if click.confirm("Can you provide an IMDB ID or URL for this title?"):
             self.update_info_by_id()
             return self.get_info()

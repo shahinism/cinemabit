@@ -5,11 +5,8 @@ import requests
 import dataset
 import validators
 
-from colorama import init, Fore
 from helpers import files, paths
 from video import Movie, Series, Info
-
-init(autoreset=True)
 
 
 def download_file(url, dest):
@@ -37,14 +34,13 @@ def import_video(path, no_poster=False):
     vinfo = Info(path)
     data = vinfo.get()
     if not data:
-        print(Fore.BLUE + "This video will not be imported!")
+        print("This video will not be imported!")
         return
 
-    print(Fore.BLUE + "The following has been extracted data:\n")
+    print("The following has been extracted data:\n")
     for key, value in data.items():
         if key in ['title', 'released', 'genre']:
-            print("{}{:>10}: {}{}".format(Fore.GREEN,
-                                          key.capitalize(), Fore.RESET, value))
+            print("{:>10}: {}".format(key.capitalize(), value))
     if data['type'] == 'episode':
         video = Series(data)
     else:
@@ -53,9 +49,9 @@ def import_video(path, no_poster=False):
     dest = os.path.join(config.LIBRARY, video.get_desired_path())
     dest_dir = os.path.dirname(dest)
     data['path'] = dest
-    print("{0}\nThis video will archive as:".format(Fore.YELLOW))
-    print("{0}From:\n    {1}".format(Fore.RED, path))
-    print("{0}To:\n    {1}\n".format(Fore.GREEN, dest))
+    print("\nThis video will archive as:")
+    print("From:\n    {0}".format(path))
+    print("To:\n    {0}\n".format(dest))
     if click.confirm("Is this OK?"):
         record(data)
         paths.mkdir(dest_dir)
