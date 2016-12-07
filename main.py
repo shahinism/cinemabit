@@ -30,46 +30,70 @@ def record(data):
     table.insert(data)
 
 
-def import_video(path, no_poster=False):
-    # TODO: Subtitle support (if exist locally)
-    vinfo = Info(path)
-    data = vinfo.get()
-    if not data:
-        puts(colored.red('This video will not be imported!'))
-        return
+class Archiver(object):
+    def __init__(self, path, video, poster=True, subtitle=True):
+        self.old_path_dir = path
+        self.old_video_name = video
+        self.old_video_path = os.path.join(path, video)
+        self.new_path_dir = None
+        self.new_video_name = None
+        self.new_video_path = None
+        self.poster = poster
+        self.subtitle = subtitle
+        self.data = self.get_info()
+        self.dest = None
+        self.video = None
 
-    puts(colored.white('The following data has been extracted:', bold=True))
-    for key, value in data.items():
-        if key in ['title', 'released', 'genre']:
-            title = "{:>10}: ".format(key.capitalize())
-            puts(colored.green(title) + colored.yellow(value))
-    if data['type'] == 'episode':
-        video = Series(data)
-    else:
-        video = Movie(data)
+    def get_info(self):
+        return Info(self.old_video_path).get()
 
-    dest = os.path.join(config.LIBRARY, video.get_desired_path())
-    dest_dir = os.path.dirname(dest)
-    data['path'] = dest
+    def set_dest(self):
+        self.new_path = os.path.join(config.LIBRARY, self.video.get_new_path())
+        self.new_video_name = self.video.get_video_name()
+        self.new_video_path = self.data['path'] = os.path.join(self.new_path, self.new_video_name)
 
-    puts(colored.white("\nThe video will archive as:", bold=True))
-    puts(colored.green("{:>10}: ".format("From")) + colored.yellow(path))
-    puts(colored.green("{:>10}: ").format("To") + colored.yellow(dest))
-    if click.confirm("\nIs this OK?"):
-        record(data)
-        paths.mkdir(dest_dir)
-        files.copy_file(path, dest)
+    def cp_video(self):
+        files.copy_file(self.old_video_path, self.new_video_path)
 
-        if not no_poster:
-            poster_name = '{}.jpg'.format(video.get_poster_name())
-            poster_path = os.path.join(dest_dir, poster_name)
-            download_file(data['poster'], poster_path)
+    def set_video_type(self):
+        if self.data['type'] == 'episode':
+            self.video = Series(self.data)
+        else:
+            self.video = Movie(self.data)
+        self.set_dest()
 
+    def get_poster(self):
+        # TODO: Support local posters
+        poster_path = os.path.join(self.new_path, self.video.get_poster_name())
+        download_file(self.data['poster'], poster_path)
 
-def import_tree(path, no_poster):
+    def save_video(self):
+        # TODO: Subtitle support (if exist locally)
+        if not self.data:
+            puts(colored.red('This video will not be imported!'))
+            return
+
+        puts(colored.white('The following data has been extracted:', bold=True))
+        for key, value in self.data.items():
+            if key in ['title', 'released', 'genre']:
+                title = "{:>10}: ".format(key.capitalize())
+                puts(colored.green(title) + colored.yellow(value))
+
+        self.set_video_type()
+        puts(colored.white("\nThe video will archive as:", bold=True))
+        puts(colored.green("{:>10}: ".format("From")) + colored.yellow(self.old_video_path))
+        puts(colored.green("{:>10}: ").format("To") + colored.yellow(self.new_video_path))
+        if click.confirm("\nIs this OK?"):
+            record(self.data)
+            self.cp_video()
+
+            if self.poster:
+                self.get_poster()
+
+def import_tree(path, poster):
     videos = paths.walk_path(path)
     for video in videos:
-        import_video(os.path.join(video['path'], video['file']))
+        Archiver(video['path'], video['file'], poster).save_video()
 
 
 @click.command()
@@ -78,9 +102,9 @@ def import_tree(path, no_poster):
 def main(target, no_poster):
     target = os.path.abspath(target)
     if os.path.isfile(target):
-        import_video(target, no_poster)
+        import_video(target, not no_poster)
     else:
-        import_tree(target, no_poster)
+        import_tree(target, not no_poster)
 
 
 if __name__ == '__main__':
